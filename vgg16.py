@@ -1,64 +1,114 @@
-from keras.layers import MaxPooling2D,ZeroPadding2D,Dropout
-from keras.layers import Conv2D,Dense,BatchNormalization,Flatten,InputLayer,Input,merge,GlobalMaxPooling2D,GlobalAveragePooling2D
+# -*- coding: utf-8 -*-
+"""VGG16 model for Keras.
+
+# Reference
+
+- [Very Deep Convolutional Networks for Large-Scale Image Recognition](https://arxiv.org/abs/1409.1556)
+
+"""
+from __future__ import print_function
+from __future__ import absolute_import
+
+import warnings
+
 from keras.models import Model
+from keras.layers import Flatten
+from keras.layers import Dense
+from keras.layers import Input
+from keras.layers import Conv2D
+from keras.layers import MaxPooling2D
+from keras.layers import GlobalAveragePooling2D
+from keras.layers import GlobalMaxPooling2D
 from keras.engine.topology import get_source_inputs
+from keras.utils import layer_utils
+from keras.utils.data_utils import get_file
+from keras import backend as K
+from  keras.applications.imagenet_utils import decode_predictions
+from  keras.applications.imagenet_utils import preprocess_input
+from  keras.applications.imagenet_utils import _obtain_input_shape
+import keras
+
+WEIGHTS_PATH_NO_TOP = 'weight/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'
 
 from keras.layers.advanced_activations import PReLU
 from keras.initializers import constant
-from keras import backend as K
-import keras
-
-from convonetutil import *
-
 p_int = constant(0.25)
 
+pooling='Max'
+classes=1000
+include_top=False
 
-def vgg16_skip(input_tensor=None, weights_path=None, pooling=None):
-    input_shape = [224,224,3]
-    if input_tensor is None:
-        img_input = Input(shape=input_shape)
-    else:
-        if not K.is_keras_tensor(input_tensor):
-            img_input = Input(tensor=input_tensor, shape=input_shape)
-        else:
-            img_input = input_tensor
+def VGG16(img_input):
+    """Instantiates the VGG16 architecture.
+
+    Optionally loads weights pre-trained
+    on ImageNet. Note that when using TensorFlow,
+    for best performance you should set
+    `image_data_format='channels_last'` in your Keras config
+    at ~/.keras/keras.json.
+
+    The model and the weights are compatible with both
+    TensorFlow and Theano. The data format
+    convention used by the model is the one
+    specified in your Keras config file.
+
+    # Arguments
+        include_top: whether to include the 3 fully-connected
+            layers at the top of the network.
+        weights: one of `None` (random initialization)
+            or 'imagenet' (pre-training on ImageNet).
+        input_tensor: optional Keras tensor (i.e. output of `layers.Input()`)
+            to use as image input for the model.
+        input_shape: optional shape tuple, only to be specified
+            if `include_top` is False (otherwise the input shape
+            has to be `(224, 224, 3)` (with `channels_last` data format)
+            or `(3, 224, 224)` (with `channels_first` data format).
+            It should have exactly 3 input channels,
+            and width and height should be no smaller than 48.
+            E.g. `(200, 200, 3)` would be one valid value.
+        pooling: Optional pooling mode for feature extraction
+            when `include_top` is `False`.
+            - `None` means that the output of the model will be
+                the 4D tensor output of the
+                last convolutional layer.
+            - `avg` means that global average pooling
+                will be applied to the output of the
+                last convolutional layer, and thus
+                the output of the model will be a 2D tensor.
+            - `max` means that global max pooling will
+                be applied.
+        classes: optional number of classes to classify images
+            into, only to be specified if `include_top` is True, and
+            if no `weights` argument is specified.
+
+    # Returns
+        A Keras model instance.
+
+    # Raises
+        ValueError: in case of invalid argument for `weights`,
+            or invalid input shape.
+    """
     # Block 1
     x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1')(img_input)
     x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2')(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(img_input)
-
-    block1_skip = Conv2D(8, kernel_size=1, strides=1)(x)
-    block1_skip = PReLU(alpha_initializer=p_int)(block1_skip)
-    block1_skip = Flatten()(block1_skip)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
 
     # Block 2
     x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1')(x)
     x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
 
-    block2_skip = Conv2D(16, kernel_size=1, strides=1)(x)
-    block2_skip = PReLU(alpha_initializer=p_int)(block2_skip)
-    block2_skip = Flatten()(block2_skip)
-
-    # Block 3
+     # Block 3
     x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1')(x)
     x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2')(x)
     x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
 
-    block3_skip = Conv2D(32, kernel_size=1, strides=1)(x)
-    block3_skip = PReLU(alpha_initializer=p_int)(block3_skip)
-    block3_skip = Flatten()(block3_skip)
-
-    # Block 4
+      # Block 4
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
-
-    block4_skip = Conv2D(64, kernel_size=1, strides=1)(x)
-    block4_skip = PReLU(alpha_initializer=p_int)(block4_skip)
-    block4_skip = Flatten()(block4_skip)
 
     # Block 5
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')(x)
@@ -66,21 +116,32 @@ def vgg16_skip(input_tensor=None, weights_path=None, pooling=None):
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
 
-    if pooling == 'avg':
-        x = GlobalAveragePooling2D()(x)
-    elif pooling == 'max':
-        x = GlobalMaxPooling2D()(x)
+    if include_top:
+        # Classification block
+        x = Flatten(name='flatten')(x)
+        x = Dense(4096, activation='relu', name='fc1')(x)
+        x = Dense(4096, activation='relu', name='fc2')(x)
+        x = Dense(classes, activation='softmax', name='predictions')(x)
+    else:
+        if pooling == 'avg':
+            x = GlobalAveragePooling2D()(x)
+        elif pooling == 'max':
+            x = GlobalMaxPooling2D()(x)
 
-
-    #concatinate all the layer
-    #concatenated = keras.layers.concatenate([block1_skip, block2_skip, block3_skip, block4_skip])
+    if K.get_variable_shape(x).__len__() == 2:
+        flat_x = x
+    else:
+        flat_x =  Flatten()(x)
 
     # Create model.
-    model = Model(img_input, x, name='vgg16_skip')
+    model = Model(inputs=img_input, outputs=flat_x, name='vgg16')
 
-    # load weights
-    if weights_path is not None:
-        model.load_weights(weights_path,by_name=True)
+    # # load weights
+    if WEIGHTS_PATH_NO_TOP is not None:
+        model.load_weights(WEIGHTS_PATH_NO_TOP, by_name=True)
 
+    # print('conv block output 1 ',model.get_layer('block1_pool').output)
+    # model.layers[3].set_weights()
+    print('model summary ', model.summary())
 
-    return model#,concatenated
+    return model

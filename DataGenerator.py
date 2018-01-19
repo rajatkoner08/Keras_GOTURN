@@ -1,4 +1,6 @@
 from __future__ import division
+import sys
+sys.path.insert(0,"/home/rajat/Downloads/re3-tensorflow-master/venv/lib/python2.7")
 import argparse
 import random
 import cv2
@@ -20,7 +22,7 @@ from re3_utils.util import drawing
 from constants import OUTPUT_WIDTH
 from constants import OUTPUT_HEIGHT
 
-CROP_SIZE =227
+CROP_SIZE =224
 NO_OF_CHANEL = 3
 CROP_PAD = 2
 
@@ -80,7 +82,7 @@ class DataGenerator(object):
                     #load batch images with ground truth a
                 X , y = self.__batch_generate(list_IDs_temp)
                 # output: img_t0, and img_t1,and gt of img_t1
-                yield [X[:, 0, :, :, :], X[:, 1, :, :, :]], y
+                yield [X[:,0, :, :, :], X[:,1, :, :, :]], y
 
 
 ###########################################################################################
@@ -107,11 +109,11 @@ class DataGenerator(object):
         #Generates data of batch size samples
         # X : (n_samples, num_unrolls, row, col, n_channels)
         # Initialization
-        X = np.empty((self.batch_size, 2, NO_OF_CHANEL, CROP_SIZE, CROP_SIZE, ))
+        X = np.empty((self.batch_size, 2, CROP_SIZE, CROP_SIZE, NO_OF_CHANEL))
         y = np.empty((self.batch_size, 4))
         # Generate data
         for i, ID in enumerate(list_IDs_temp):
-            X[i, :, :, :, :],y[i,:] = self.__load_image(ID[0], ID[1])
+            X[i,:,:,:,:],y[i,:] = self.__load_image(ID[0], ID[1])
 
         return X, y
 
@@ -170,7 +172,6 @@ class DataGenerator(object):
             if self.debug:
                 self.showData(image_0,image_1,X[0,...], X[1,...], shiftedBBoxXYWH )
 
-            X = X.transpose(0, 3, 1, 2)
             xyxyLabels = bb_util.xywh_to_xyxy(shiftedBBoxXYWH)
             xyxyLabels = xyxyLabels*10
 

@@ -96,7 +96,7 @@ def VGG16(img_input):
     # skip connection
     block1_skip = Conv2D(8, kernel_size=1, strides=1, name='block1_skip')(x)
     block1_skip = PReLU(alpha_initializer=p_int)(block1_skip)
-    block1_skip = Flatten()(block1_skip)
+    block1_skip = Flatten(name='block1_skip_flat')(block1_skip)
 
     # Block 2
     x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1')(x)
@@ -105,7 +105,7 @@ def VGG16(img_input):
 
     block2_skip = Conv2D(16, kernel_size=1, strides=1, name='block2_skip')(x)
     block2_skip = PReLU(alpha_initializer=p_int)(block2_skip)
-    block2_skip = Flatten()(block2_skip)
+    block2_skip = Flatten(name='block2_skip_flat')(block2_skip)
 
     # Block 3
     x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1')(x)
@@ -115,7 +115,7 @@ def VGG16(img_input):
 
     block3_skip = Conv2D(32, kernel_size=1, strides=1, name='block3_skip')(x)
     block3_skip = PReLU(alpha_initializer=p_int)(block3_skip)
-    block3_skip = Flatten()(block3_skip)
+    block3_skip = Flatten(name='block3_skip_flat')(block3_skip)
 
     # Block 4
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')(x)
@@ -125,7 +125,7 @@ def VGG16(img_input):
 
     block4_skip = Conv2D(64, kernel_size=1, strides=1, name='block4_skip')(x)
     block4_skip = PReLU(alpha_initializer=p_int)(block4_skip)
-    block4_skip = Flatten()(block4_skip)
+    block4_skip = Flatten(name='block4_skip_flat')(block4_skip)
 
     # Block 5
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')(x)
@@ -155,7 +155,7 @@ def VGG16(img_input):
     # Create model.
     model = Model(inputs=img_input, outputs=concatenated, name='vgg16')
 
-    # load weights
+    # # load weights
     if WEIGHTS_PATH_NO_TOP is not None:
         model.load_weights(WEIGHTS_PATH_NO_TOP, by_name=True)
 
