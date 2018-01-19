@@ -18,7 +18,6 @@ epoch =1024
 
 from DataGenerator import *
 from alexnet import alex_net_conv_layers
-from vgg16 import vgg16_skip
 #from keras.applications.vgg16 import VGG16
 from keras_vgg import VGG16
 
@@ -68,10 +67,9 @@ def main(FLAGS):
 
     image_input = Input(shape=input_dim)
     #feature_model = alex_net_conv_layers(image_input, weights_path= weight)
-    feature_model = vgg16_skip(input_tensor=image_input,weights_path=weight,pooling='max')
-    #feature_model = VGG16(weights='imagenet',include_top=False,path=weight)
-    print 'VGG 16 summary ',feature_model.summary()
-    exit()
+    #feature_model = vgg16_skip(input_tensor=image_input,weights_path=weight,pooling='max')
+    feature_model = VGG16(input_shape=input_dim, input_tensor= image_input)
+
     img_t0 = Input(shape=input_dim)
     img_t1 = Input(shape=input_dim)
     # because we re-use the same instance of the network
@@ -101,15 +99,15 @@ def main(FLAGS):
 
     #model.load_weights(log_dir + '/re3_mobile_weights_epoch-08_loss-63.3082_val_loss-59.1573.h5',by_name=True)
 
-    model.compile(loss=full_loss, optimizer=Adam(lr=learningrate), metrics=[IOU_calc])
+    model.compile(loss=full_loss, optimizer=Adam(lr=learningrate), metrics=['accuracy'])
     # load previous trained model
     #model = load_model(log_dir + '/re3_Alexnet.h5', custom_objects={'full_loss': full_loss})
 
     # Generators
     training_generator = datagen.train_generate()
     validation_generator = datagen.val_generate()
-    #todo create a sperate test generator for prediction and evaluation
-    predict_generator = validation_generator
+
+    print'Starting training ....'
 
     #Train model on dataset
     history = model.fit_generator(generator=training_generator,
@@ -127,7 +125,7 @@ def main(FLAGS):
                         validation_data=validation_generator,
                         validation_steps= 1)
 
-    model_name = 'goturn_Alexnet'
+    model_name = 'goturn_vgg16'
     model.save(log_dir+'/{}.h5'.format(model_name))
     model.save_weights(log_dir+'/{}_weights.h5'.format(model_name))
     print()

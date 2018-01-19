@@ -28,17 +28,14 @@ from  keras.applications.imagenet_utils import preprocess_input
 from  keras.applications.imagenet_utils import _obtain_input_shape
 import keras
 
-
-WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels.h5'
-WEIGHTS_PATH_NO_TOP = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'
+WEIGHTS_PATH_NO_TOP = 'weight/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'
 
 from keras.layers.advanced_activations import PReLU
 from keras.initializers import constant
 p_int = constant(0.25)
 
 
-def VGG16(include_top=False, weights_path=None,
-          input_tensor=None, input_shape=None,
+def VGG16(include_top=False,input_tensor=None, input_shape=None,
           pooling='Max',
           classes=1000):
     """Instantiates the VGG16 architecture.
@@ -173,12 +170,11 @@ def VGG16(include_top=False, weights_path=None,
     model = Model(inputs, concatenated, name='vgg16')
 
     # load weights
-    if weights_path is not None:
-        model.load_weights(weights_path+'/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5', by_name=True)
+    if WEIGHTS_PATH_NO_TOP is not None:
+        model.load_weights(WEIGHTS_PATH_NO_TOP, by_name=True)
 
     # print('conv block output 1 ',model.get_layer('block1_pool').output)
     # model.layers[3].set_weights()
     print('model summary ', model.summary())
 
     return model
-s
