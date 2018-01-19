@@ -1,0 +1,7 @@
+*.jpg
+*~
+*.swp
+*.pyc
+weight/
+.idea/
+.idea/workspace.xml

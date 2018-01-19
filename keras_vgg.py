@@ -37,11 +37,10 @@ from keras.initializers import constant
 p_int = constant(0.25)
 
 
-def VGG16(include_top=True, weights='imagenet',
+def VGG16(include_top=False, weights_path=None,
           input_tensor=None, input_shape=None,
-          pooling=None,
-          classes=1000,
-          path = None):
+          pooling='Max',
+          classes=1000):
     """Instantiates the VGG16 architecture.
 
     Optionally loads weights pre-trained
@@ -91,21 +90,6 @@ def VGG16(include_top=True, weights='imagenet',
         ValueError: in case of invalid argument for `weights`,
             or invalid input shape.
     """
-    if weights not in {'imagenet', None}:
-        raise ValueError('The `weights` argument should be either '
-                         '`None` (random initialization) or `imagenet` '
-                         '(pre-training on ImageNet).')
-
-    if weights == 'imagenet' and include_top and classes != 1000:
-        raise ValueError('If using `weights` as imagenet with `include_top`'
-                         ' as true, `classes` should be 1000')
-    # Determine proper input shape
-    input_shape = _obtain_input_shape(input_shape,
-                                      default_size=224,
-                                      min_size=48,
-                                      data_format=K.image_data_format(),
-                                      require_flatten=include_top,
-                                      weights=weights)
 
     if input_tensor is None:
         img_input = Input(shape=input_shape)
@@ -119,10 +103,19 @@ def VGG16(include_top=True, weights='imagenet',
     x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
 
+    # skip connection
+    block1_skip = Conv2D(8, kernel_size=1, strides=1, name='block1_skip')(x)
+    block1_skip = PReLU(alpha_initializer=p_int)(block1_skip)
+    block1_skip = Flatten()(block1_skip)
+
     # Block 2
     x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1')(x)
     x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
+
+    block2_skip = Conv2D(16, kernel_size=1, strides=1, name='block2_skip')(x)
+    block2_skip = PReLU(alpha_initializer=p_int)(block2_skip)
+    block2_skip = Flatten()(block2_skip)
 
     # Block 3
     x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1')(x)
@@ -130,11 +123,19 @@ def VGG16(include_top=True, weights='imagenet',
     x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
 
+    block3_skip = Conv2D(32, kernel_size=1, strides=1, name='block3_skip')(x)
+    block3_skip = PReLU(alpha_initializer=p_int)(block3_skip)
+    block3_skip = Flatten()(block3_skip)
+
     # Block 4
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
+
+    block4_skip = Conv2D(64, kernel_size=1, strides=1, name='block4_skip')(x)
+    block4_skip = PReLU(alpha_initializer=p_int)(block4_skip)
+    block4_skip = Flatten()(block4_skip)
 
     # Block 5
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')(x)
@@ -161,46 +162,23 @@ def VGG16(include_top=True, weights='imagenet',
         inputs = get_source_inputs(input_tensor)
     else:
         inputs = img_input
+    if K.get_variable_shape(x).__len__() == 2:
+        flat_x = x
+    else:
+        flat_x =  Flatten()(x)
+    # concatinate all the layer
+    concatenated = keras.layers.concatenate([block1_skip, block2_skip, block3_skip, block4_skip, flat_x])
+
     # Create model.
-    model = Model(inputs, x, name='vgg16')
-    print('model summary ',model.summary())
+    model = Model(inputs, concatenated, name='vgg16')
 
     # load weights
-    if weights == 'imagenet':
-        if include_top:
-            weights_path = get_file('vgg16_weights_tf_dim_ordering_tf_kernels.h5',
-                                    WEIGHTS_PATH,
-                                    cache_subdir='models')
-        else:
-            weights_path = path
-        model.load_weights(weights_path)
-        if K.backend() == 'theano':
-            layer_utils.convert_all_kernels_in_model(model)
+    if weights_path is not None:
+        model.load_weights(weights_path+'/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5', by_name=True)
 
-        if K.image_data_format() == 'channels_first':
-            if include_top:
-                maxpool = model.get_layer(name='block5_pool')
-                shape = maxpool.output_shape[1:]
-                dense = model.get_layer(name='fc1')
-                layer_utils.convert_dense_weights_data_format(dense, shape, 'channels_first')
+    # print('conv block output 1 ',model.get_layer('block1_pool').output)
+    # model.layers[3].set_weights()
+    print('model summary ', model.summary())
 
-            if K.backend() == 'tensorflow':
-                warnings.warn('You are using the TensorFlow backend, yet you '
-                              'are using the Theano '
-                              'image data format convention '
-                              '(`image_data_format="channels_first"`). '
-                              'For best performance, set '
-                              '`image_data_format="channels_last"` in '
-                              'your Keras config '
-                              'at ~/.keras/keras.json.')
-
-    print('conv block output 1 ',model.get_layer('block1_pool').output)
-    model.layers[3].set_weights()
-    #skip connection
-    block1_skip = Conv2D(8, kernel_size=1, strides=1)(model.get_layer('block1_pool').output)
-    block1_skip = PReLU(alpha_initializer=p_int)(block1_skip)
-    block1_skip = Flatten()(block1_skip)
-    # concatinate all the layer
-    concatenated = keras.layers.concatenate([block1_skip,model.output])
-    print( 'concatinate output',concatenated)
     return model
+s
