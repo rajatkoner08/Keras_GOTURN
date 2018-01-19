@@ -34,10 +34,11 @@ from keras.layers.advanced_activations import PReLU
 from keras.initializers import constant
 p_int = constant(0.25)
 
+pooling='Max'
+classes=1000
+include_top=False
 
-def VGG16(include_top=False,input_tensor=None, input_shape=None,
-          pooling='Max',
-          classes=1000):
+def VGG16(img_input):
     """Instantiates the VGG16 architecture.
 
     Optionally loads weights pre-trained
@@ -87,14 +88,6 @@ def VGG16(include_top=False,input_tensor=None, input_shape=None,
         ValueError: in case of invalid argument for `weights`,
             or invalid input shape.
     """
-
-    if input_tensor is None:
-        img_input = Input(shape=input_shape)
-    else:
-        if not K.is_keras_tensor(input_tensor):
-            img_input = Input(tensor=input_tensor, shape=input_shape)
-        else:
-            img_input = input_tensor
     # Block 1
     x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1')(img_input)
     x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2')(x)
@@ -152,13 +145,6 @@ def VGG16(include_top=False,input_tensor=None, input_shape=None,
         elif pooling == 'max':
             x = GlobalMaxPooling2D()(x)
 
-
-    # Ensure that the model takes into account
-    # any potential predecessors of `input_tensor`.
-    if input_tensor is not None:
-        inputs = get_source_inputs(input_tensor)
-    else:
-        inputs = img_input
     if K.get_variable_shape(x).__len__() == 2:
         flat_x = x
     else:
@@ -167,7 +153,7 @@ def VGG16(include_top=False,input_tensor=None, input_shape=None,
     concatenated = keras.layers.concatenate([block1_skip, block2_skip, block3_skip, block4_skip, flat_x])
 
     # Create model.
-    model = Model(inputs, concatenated, name='vgg16')
+    model = Model(inputs=img_input, outputs=concatenated, name='vgg16')
 
     # load weights
     if WEIGHTS_PATH_NO_TOP is not None:

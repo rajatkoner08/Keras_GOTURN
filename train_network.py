@@ -68,7 +68,7 @@ def main(FLAGS):
     image_input = Input(shape=input_dim)
     #feature_model = alex_net_conv_layers(image_input, weights_path= weight)
     #feature_model = vgg16_skip(input_tensor=image_input,weights_path=weight,pooling='max')
-    feature_model = VGG16(input_shape=input_dim, input_tensor= image_input)
+    feature_model = VGG16(image_input)
 
     img_t0 = Input(shape=input_dim)
     img_t1 = Input(shape=input_dim)
