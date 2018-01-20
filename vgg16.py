@@ -104,12 +104,18 @@ def VGG16(img_input):
     x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
 
-      # Block 4
+    #block 3 skip connection
+    block3_skip = Conv2D(32, kernel_size=1, strides=1, name='block3_skip')(x)
+    block3_skip = PReLU(alpha_initializer=p_int, name='block3_prelu')(block3_skip)
+    block3_skip = Flatten(name='block3_skip_flat')(block3_skip)
+
+    # Block 4
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
 
+    #block 4 skip connection
     block4_skip = Conv2D(64, kernel_size=1, strides=1, name='block4_skip')(x)
     block4_skip = PReLU(alpha_initializer=p_int, name='block4_prelu')(block4_skip)
     block4_skip = Flatten(name='block4_skip_flat')(block4_skip)
@@ -138,7 +144,7 @@ def VGG16(img_input):
         flat_x =  Flatten(name='vgg16_flat')(x)
 
     # concatinate all the layer
-    concatenated = keras.layers.concatenate([ block4_skip, flat_x], name='large_concat')
+    concatenated = keras.layers.concatenate([block3_skip, block4_skip, flat_x], name='large_concat')
 
     # Create model.
     model = Model(inputs=img_input, outputs=concatenated, name='vgg16')
