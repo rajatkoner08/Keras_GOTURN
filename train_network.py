@@ -72,17 +72,18 @@ def main(FLAGS):
     feature_model = VGG16(image_input)
 
     trainable_layer = ['block1_skip', 'block2_skip','block3_skip','block4_skip', 'block5_conv3', 'p_re_lu_1', 'p_re_lu_2', 'p_re_lu_3'
-                        'p_re_lu_4','block1_skip_flat', 'block1_skip_flat', 'block1_skip_flat','block1_skip_flat','flatten_5', 'concatenate_1']
+                        'block4_prelu','block1_skip_flat', 'block2_skip_flat', 'block3_skip_flat','block4_skip_flat', 'large_concat']
 
 
     # for i, layer in enumerate(feature_model.layers):
     #     print(i, layer.name)
 
+
     # first: train only the top layers (which were randomly initialized)
     # i.e. freeze all convolutional VGG16 layers
     for layer in feature_model.layers:
-        #if layer.name not in trainable_layer:
-        layer.trainable = False
+        if layer.name not in trainable_layer:
+            layer.trainable = False
 
     img_t0 = Input(batch_shape=input_dim)
     img_t1 = Input(batch_shape=input_dim)

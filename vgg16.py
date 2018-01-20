@@ -110,6 +110,10 @@ def VGG16(img_input):
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
 
+    block4_skip = Conv2D(64, kernel_size=1, strides=1, name='block4_skip')(x)
+    block4_skip = PReLU(alpha_initializer=p_int, name='block4_prelu')(block4_skip)
+    block4_skip = Flatten(name='block4_skip_flat')(block4_skip)
+
     # Block 5
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2')(x)
@@ -131,10 +135,13 @@ def VGG16(img_input):
     if K.get_variable_shape(x).__len__() == 2:
         flat_x = x
     else:
-        flat_x =  Flatten()(x)
+        flat_x =  Flatten(name='vgg16_flat')(x)
+
+    # concatinate all the layer
+    concatenated = keras.layers.concatenate([ block4_skip, flat_x], name='large_concat')
 
     # Create model.
-    model = Model(inputs=img_input, outputs=flat_x, name='vgg16')
+    model = Model(inputs=img_input, outputs=concatenated, name='vgg16')
 
     # # load weights
     if WEIGHTS_PATH_NO_TOP is not None:

@@ -3,5 +3,6 @@
 *.swp
 *.pyc
 weight/
+logs/
 .idea/
 .idea/workspace.xml
