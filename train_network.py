@@ -71,7 +71,7 @@ def main(FLAGS):
     #feature_model = vgg16_skip(input_tensor=image_input,weights_path=weight,pooling='max')
     feature_model = VGG16(image_input)
 
-    trainable_layer = ['block1_skip', 'block2_skip','block3_skip','block4_skip', 'p_re_lu_1', 'p_re_lu_2', 'block3_prelu'
+    trainable_layer = ['block1_skip', 'block2_skip','block3_skip','block4_skip', 'p_re_lu_1', 'block2_skip', 'block3_prelu'
                         'block4_prelu','block1_skip_flat', 'block2_skip_flat', 'block3_skip_flat','block4_skip_flat', 'large_concat']
 
 

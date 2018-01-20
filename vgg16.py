@@ -109,6 +109,11 @@ def VGG16(img_input):
     block3_skip = PReLU(alpha_initializer=p_int, name='block3_prelu')(block3_skip)
     block3_skip = Flatten(name='block3_skip_flat')(block3_skip)
 
+    #block 2 skip
+    block2_skip = Conv2D(16, kernel_size=1, strides=1, name='block2_skip')(x)
+    block2_skip = PReLU(alpha_initializer=p_int, name='block2_prelu')(block2_skip)
+    block2_skip = Flatten(name='block2_skip_flat')(block2_skip)
+
     # Block 4
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2')(x)
@@ -144,7 +149,7 @@ def VGG16(img_input):
         flat_x =  Flatten(name='vgg16_flat')(x)
 
     # concatinate all the layer
-    concatenated = keras.layers.concatenate([block3_skip, block4_skip, flat_x], name='large_concat')
+    concatenated = keras.layers.concatenate([block2_skip, block3_skip, block4_skip, flat_x], name='large_concat')
 
     # Create model.
     model = Model(inputs=img_input, outputs=concatenated, name='vgg16')
