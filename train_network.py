@@ -71,8 +71,10 @@ def main(FLAGS):
     #feature_model = vgg16_skip(input_tensor=image_input,weights_path=weight,pooling='max')
     feature_model = VGG16(image_input)
 
-    trainable_layer = ['block1_skip', 'block2_skip','block3_skip','block4_skip', 'p_re_lu_1', 'block2_skip', 'block3_prelu'
-                        'block4_prelu','block1_skip_flat', 'block2_skip_flat', 'block3_skip_flat','block4_skip_flat', 'large_concat']
+    trainable_layer = ['block1_skip', 'block2_skip','block3_skip','block4_skip',
+                       'block1_prelu', 'block2_skip', 'block3_prelu', 'block4_prelu',
+                       'block1_skip_flat', 'block2_skip_flat', 'block3_skip_flat','block4_skip_flat',
+                       'large_concat']
 
 
     # for i, layer in enumerate(feature_model.layers):
@@ -114,8 +116,8 @@ def main(FLAGS):
 
     #model.load_weights(log_dir + '/re3_mobile_weights_epoch-08_loss-63.3082_val_loss-59.1573.h5',by_name=True)
 
-    #model.compile(loss=full_loss, optimizer=Adam(lr=LearningRate), metrics=['accuracy'])
-    model.compile(loss=full_loss, optimizer=SGD(lr=LearningRate, momentum=0.9), metrics=['accuracy'])
+    model.compile(loss=full_loss, optimizer=Adam(lr=LearningRate), metrics=['accuracy'])
+    #model.compile(loss=full_loss, optimizer=SGD(lr=LearningRate, momentum=0.9), metrics=['accuracy'])
 
     # Generators
     training_generator = datagen.train_generate()
