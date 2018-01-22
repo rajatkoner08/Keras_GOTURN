@@ -1,6 +1,5 @@
 from __future__ import division
 import sys
-sys.path.insert(0,"/home/rajat/Downloads/re3-tensorflow-master/venv/lib/python2.7")
 import argparse
 import random
 import cv2
@@ -21,6 +20,7 @@ from re3_utils.util import bb_util
 from re3_utils.util import drawing
 from constants import OUTPUT_WIDTH
 from constants import OUTPUT_HEIGHT
+from constants import GPU_Cluster
 
 CROP_SIZE =224
 NO_OF_CHANEL = 3
@@ -38,8 +38,8 @@ random_seed = 123
 class DataGenerator(object):
 
     #Generates  data  for Keras
-    def __init__(self,  dataset_type = 'train',batch_size=1, debug=False, shuffle = True):
-        'Initialization of set of constraint'
+    def __init__(self,  dataset_type = 'train',batch_size=1, debug=True, shuffle = True):
+        #'Initialization of set of constraint'
         self.debug = debug
         self.batch_size = batch_size
         self.shuffle = shuffle
@@ -61,6 +61,7 @@ class DataGenerator(object):
         # dict from (dataset_ind, video_id, track_id, image_id) to line in labels array
         self.key_lookup = dict()
         #self.__calculate_mean()
+        self.img_no = 1
 
 
 
@@ -130,27 +131,39 @@ class DataGenerator(object):
 
         try:
             img_ind = int(img_index) #- 1  # as image start with 1 and list start with 0
-            if self.debug:
-                imageName0 = self.image_paths[0][img_ind]
-                imageName1 = self.image_paths[0][img_ind+1]
+            imagePath0 = self.image_paths[0][img_ind]
+            imagePath1 = self.image_paths[0][img_ind + 1]
 
-                print 'Reading image', imageName0[126:], ' and ',imageName1[126:]
+            # if GPU_Cluster:
+            #     imagePath0= '/mnt/glusterdata/home/koner/'+imagePath0
+            #     imagePath1 = '/mnt/glusterdata/home/koner/'+imagePath1
+
+            if self.debug:
+                if GPU_Cluster:
+                    print 'Reading image', imagePath0[135:], ' and ', imagePath1[135:]
+                else:
+                    print 'Reading image', imagePath0[126:], ' and ', imagePath1[126:]
                 print 'respective GT',self.gt[gt_index],' and ',self.gt[gt_index+1]
             #take initial box from starting image of unroll
-            previous_box = self.gt[gt_index][:4]
+            if GPU_Cluster:
+                previous_box = self.gt[gt_index][1:5]
+                # read next/curr frame gt
+                curr_bbox = self.gt[(gt_index + 1)][1:5]
+            else:
+                previous_box = self.gt[gt_index][:4]
+                curr_bbox = self.gt[(gt_index + 1)][:4]
 
             #read two consicutive images, with their common initial gt
-            image_0 = cv2.imread(self.image_paths[0][img_ind])[:,:,::-1].astype(np.float32)
+            image_0 = cv2.imread(imagePath0)[:,:,::-1].astype(np.float32)
             # We normalize the colors (in RGB space) with the empirical means on the training set
             image_0[:, :, 0] -= 123.68
             image_0[:, :, 1] -= 116.779
             image_0[:, :, 2] -= 103.939
-            image_1 = cv2.imread(self.image_paths[0][img_ind + 1])[:, :, ::-1].astype(np.float32)
+            image_1 = cv2.imread(imagePath1)[:, :, ::-1].astype(np.float32)
             image_1[:, :, 0] -= 123.68
             image_1[:, :, 1] -= 116.779
             image_1[:, :, 2] -= 103.939
-            #read next/curr frame gt
-            curr_bbox = self.gt[(gt_index+1)][:4]
+
             # add all the noise flipping,and corping of images
             if not realMotion :
                 noisy_box = add_noise(previous_box.astype('float32').tolist(), previous_box.astype('float32').tolist(), image_0.shape[1], image_0.shape[0])
@@ -278,10 +291,14 @@ class DataGenerator(object):
         label[0, 1] = 0
         plots = [bigImage0, bigImage1, image0, image1, label]
         subplot = drawing.subplot(plots, 3, 2, outputWidth=OUTPUT_WIDTH, outputHeight=OUTPUT_HEIGHT, border=5)
-        cv2.imshow('debug', subplot[:, :, ::-1])
-        k = cv2.waitKey(0)
-        if k == 27:
-            cv2.destroyAllWindows()
+        cv2.imwrite('./debugedImage/'+str(self.img_no).rjust(6, '0')+'.jpg',subplot[:, :, ::-1])
+        self.img_no = self.img_no + 1
+        if(self.img_no == 256 ):
+            exit()
+        # cv2.imshow('debug', subplot[:, :, ::-1])
+        # k = cv2.waitKey(0)
+        # if k == 27:
+        #     cv2.destroyAllWindows()
 
 
 #####################################################################################

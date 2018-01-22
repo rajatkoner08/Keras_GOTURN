@@ -15,8 +15,8 @@ import tensorflow as tf
 
 L2_WEIGHT_PENALTY = 0.0005
 Epoch =1024
-Batch_Size = 8
-LearningRate = 0.00001
+Batch_Size = 64
+LearningRate = 0.0001
 
 from DataGenerator import *
 from alexnet import alex_net_conv_layers
@@ -35,7 +35,9 @@ l2_loss = regularizers.l2(L2_WEIGHT_PENALTY)
 
 # Define a learning rate schedule.
 def lr_schedule(epoch):
-    if epoch <= 1000:
+    if epoch <= 10:
+        return 0.0001
+    elif epoch >10 and epoch <1000:
         return 0.00001
     else:
         return 0.000001
@@ -63,6 +65,7 @@ def main(FLAGS):
     print 'validation data len : ', len(datagen.val_indices)
 
     input_dim = [Batch_Size, 224, 224, 3]
+
 
     K.clear_session() # Clear previous models from memory.
 
@@ -99,14 +102,14 @@ def main(FLAGS):
     print ' Merged images shape ',K.get_variable_shape(merge_images)
 
     # Embeded fully connected layer of 4096
-    fc6 = Dense(500, activation='relu',kernel_regularizer=l2_loss, name='fc6')(merge_images)
+    fc6 = Dense(4096, activation='relu',kernel_regularizer=l2_loss, name='fc6')(merge_images)
     fc6_dropout = Dropout(0.5)(fc6)
-    # fc7 = Dense(4096, activation='relu',kernel_regularizer=l2_loss)(fc6_dropout)
-    # fc7_dropout = Dropout(0.5)(fc7)
+    fc7 = Dense(4096, activation='relu',kernel_regularizer=l2_loss)(fc6_dropout)
+    fc7_dropout = Dropout(0.5)(fc7)
     # fc8 = Dense(4096, activation='relu',kernel_regularizer=l2_loss)(fc7_dropout)
     # fc8_dropout = Dropout(0.5)(fc8)
     #predict bounding box of the target
-    bbox_out = Dense(4,name='fc_bbox')(fc6_dropout)
+    bbox_out = Dense(4,name='fc_bbox')(fc7_dropout)
 
     #https://sorenbouma.github.io/blog/oneshot/   --siamese one shot
 
