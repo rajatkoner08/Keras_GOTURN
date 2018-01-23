@@ -8,6 +8,7 @@
 """
 from __future__ import print_function
 from __future__ import absolute_import
+import os
 
 import warnings
 
@@ -28,7 +29,9 @@ from  keras.applications.imagenet_utils import preprocess_input
 from  keras.applications.imagenet_utils import _obtain_input_shape
 import keras
 
-WEIGHTS_PATH_NO_TOP = 'weight/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'
+basedir = os.path.dirname(__file__)
+weight_path = os.path.join(basedir,'weight')
+#WEIGHTS_PATH_NO_TOP = 'weight/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'
 
 from keras.layers.advanced_activations import PReLU
 from keras.initializers import constant
@@ -106,6 +109,7 @@ def VGG16(img_input):
     # block 2 skip
     block2_skip = Conv2D(16, kernel_size=1, strides=1, name='block2_skip')(x)
     block2_skip = PReLU(alpha_initializer=p_int, name='block2_prelu')(block2_skip)
+    block2_skip = MaxPooling2D((2,2))(block2_skip)
     block2_skip = Flatten(name='block2_skip_flat')(block2_skip)
 
     # Block 3
@@ -115,8 +119,9 @@ def VGG16(img_input):
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
 
     #block 3 skip connection
-    block3_skip = Conv2D(32, kernel_size=1, strides=1, name='block3_skip')(x)
+    block3_skip = Conv2D(16, kernel_size=1, strides=1, name='block3_skip')(x)
     block3_skip = PReLU(alpha_initializer=p_int, name='block3_prelu')(block3_skip)
+    block3_skip = MaxPooling2D((2,2))(block3_skip)
     block3_skip = Flatten(name='block3_skip_flat')(block3_skip)
 
 
@@ -127,14 +132,22 @@ def VGG16(img_input):
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
 
     #block 4 skip connection
-    block4_skip = Conv2D(64, kernel_size=1, strides=1, name='block4_skip')(x)
+    block4_skip = Conv2D(32, kernel_size=1, strides=1, name='block4_skip')(x)
     block4_skip = PReLU(alpha_initializer=p_int, name='block4_prelu')(block4_skip)
+    block4_skip = MaxPooling2D((2,2))(block4_skip)
     block4_skip = Flatten(name='block4_skip_flat')(block4_skip)
 
     # Block 5
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2')(x)
     x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3')(x)
+
+    # block 5 skip connection
+    block5_skip = Conv2D(32, kernel_size=1, strides=1, name='block5_skip')(x)
+    block5_skip = PReLU(alpha_initializer=p_int, name='block5_prelu')(block5_skip)
+    block5_skip = MaxPooling2D((2, 2))(block5_skip)
+    block5_skip = Flatten(name='block5_skip_flat')(block5_skip)
+
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
 
     if include_top:
@@ -155,17 +168,18 @@ def VGG16(img_input):
         flat_x =  Flatten(name='vgg16_flat')(x)
 
     # concatinate all the layer
-    concatenated = keras.layers.concatenate([ block2_skip, block3_skip, block4_skip, flat_x], name='large_concat')
+    concatenated = keras.layers.concatenate([ block2_skip,block3_skip, block4_skip, block5_skip, flat_x], name='large_concat')
 
     # Create model.
     model = Model(inputs=img_input, outputs=concatenated, name='vgg16')
 
     # # load weights
-    if WEIGHTS_PATH_NO_TOP is not None:
-        model.load_weights(WEIGHTS_PATH_NO_TOP, by_name=True)
+    if weight_path is not None:
+        model.load_weights(weight_path+'/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5', by_name=True)
 
     # print('conv block output 1 ',model.get_layer('block1_pool').output)
     # model.layers[3].set_weights()
     print('model summary ', model.summary())
 
+    skip_concat = keras.layers.concatenate([block2_skip, block3_skip, block4_skip, block5_skip], name='skip_concat')
     return model

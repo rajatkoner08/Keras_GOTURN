@@ -38,7 +38,7 @@ random_seed = 123
 class DataGenerator(object):
 
     #Generates  data  for Keras
-    def __init__(self,  dataset_type = 'train',batch_size=1, debug=True, shuffle = True):
+    def __init__(self,  dataset_type = 'train',batch_size=1, debug=False, shuffle = True):
         #'Initialization of set of constraint'
         self.debug = debug
         self.batch_size = batch_size
@@ -135,12 +135,12 @@ class DataGenerator(object):
             imagePath1 = self.image_paths[0][img_ind + 1]
 
             # if GPU_Cluster:
-            #     imagePath0= '/mnt/glusterdata/home/koner/'+imagePath0
-            #     imagePath1 = '/mnt/glusterdata/home/koner/'+imagePath1
+            #      imagePath0= '/mnt/glusterdata/home/koner/'+imagePath0
+            #      imagePath1 = '/mnt/glusterdata/home/koner/'+imagePath1
 
             if self.debug:
                 if GPU_Cluster:
-                    print 'Reading image', imagePath0[135:], ' and ', imagePath1[135:]
+                    print 'Reading image', imagePath0, ' and ', imagePath1
                 else:
                     print 'Reading image', imagePath0[126:], ' and ', imagePath1[126:]
                 print 'respective GT',self.gt[gt_index],' and ',self.gt[gt_index+1]
@@ -248,14 +248,14 @@ class DataGenerator(object):
             end_line = self.gt[xx + 1,:]
             # Check that still in the same sequence.
             # Video_id should match, track_id should match, and image number should be exactly num_unrolls frames later.
-            if (start_line[4] == end_line[4] and
-                start_line[5] == end_line[5] and
-                int(start_line[6]) + 1 == int(end_line[6])):
+            if (start_line[5] == end_line[5] and
+                start_line[6] == end_line[6] and
+                int(start_line[7]) + 1 == int(end_line[7])):
                 # Add image id and respective ground truth.
-                self.all_img_wd_gt.append([str(start_line[6]).rjust(6, '0'), xx])
+                self.all_img_wd_gt.append([str(start_line[7]).rjust(6, '0'), xx])
                 num_keys += 1
             if self.debug:
-                print '#%s added image : %s' % (dataset_name, start_line[6])
+                print '#%s added image : %s' % (dataset_name, start_line[7])
 
         image_paths = data['image_paths']
         # Add the array to image_paths. Note that image paths is indexed by the dataset number THEN by the image line.
@@ -320,5 +320,6 @@ if __name__ == '__main__':
                         dest='batch_size',type=int)
     args = parser.parse_args()
     main(args)
+
 
 

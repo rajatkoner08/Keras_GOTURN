@@ -3,8 +3,6 @@ import os
 import sys
 basedir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir)))
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
 from keras.optimizers import Adam,SGD
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, EarlyStopping, Callback, TensorBoard
 from keras import backend as K
@@ -15,7 +13,7 @@ import tensorflow as tf
 
 L2_WEIGHT_PENALTY = 0.0005
 Epoch =1024
-Batch_Size = 64
+Batch_Size = 32
 LearningRate = 0.0001
 
 from DataGenerator import *
@@ -25,8 +23,6 @@ from vgg16 import VGG16
 
 smooth = 1
 
-#weight = '/weight/alexnet_weights.h5'
-weight = 'weight/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'
 log_dir = os.path.join(basedir,'logs')
 
 l2_loss = regularizers.l2(L2_WEIGHT_PENALTY)
@@ -66,7 +62,6 @@ def main(FLAGS):
 
     input_dim = [Batch_Size, 224, 224, 3]
 
-
     K.clear_session() # Clear previous models from memory.
 
     image_input = Input(batch_shape=input_dim)
@@ -102,14 +97,14 @@ def main(FLAGS):
     print ' Merged images shape ',K.get_variable_shape(merge_images)
 
     # Embeded fully connected layer of 4096
-    fc6 = Dense(4096, activation='relu',kernel_regularizer=l2_loss, name='fc6')(merge_images)
+    fc6 = Dense(2048, activation='relu',kernel_regularizer=l2_loss, name='fc6')(merge_images)
     fc6_dropout = Dropout(0.5)(fc6)
-    fc7 = Dense(4096, activation='relu',kernel_regularizer=l2_loss)(fc6_dropout)
+    fc7 = Dense(2048, activation='relu',kernel_regularizer=l2_loss)(fc6_dropout)
     fc7_dropout = Dropout(0.5)(fc7)
-    # fc8 = Dense(4096, activation='relu',kernel_regularizer=l2_loss)(fc7_dropout)
-    # fc8_dropout = Dropout(0.5)(fc8)
+    fc8 = Dense(2048, activation='relu',kernel_regularizer=l2_loss)(fc7_dropout)
+    fc8_dropout = Dropout(0.5)(fc8)
     #predict bounding box of the target
-    bbox_out = Dense(4,name='fc_bbox')(fc7_dropout)
+    bbox_out = Dense(4,name='fc_bbox')(fc8_dropout)
 
     #https://sorenbouma.github.io/blog/oneshot/   --siamese one shot
 
@@ -132,15 +127,15 @@ def main(FLAGS):
 
     #Train model on dataset
     history = model.fit_generator(generator=training_generator,
-                                  steps_per_epoch=10,
+                                  steps_per_epoch=4,
                                   epochs=Epoch,
                                   #initial_epoch=10,
-                         callbacks=[#ModelCheckpoint(log_dir+'/re3_Alex_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
-                        #               monitor='val_loss', verbose=2,
-                        #               save_best_only=True,
-                        #               save_weights_only=True,
-                        #               mode='auto',
-                        #               period=1),
+                         callbacks=[ModelCheckpoint('./logs/goturn_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
+                                      monitor='val_loss', verbose=2,
+                                      save_best_only=True,
+                                      save_weights_only=True,
+                                      mode='auto',
+                                      period=1),
                                             TensorBoard(log_dir='./logs',
                                                                           histogram_freq=0, write_graph=True, write_images=True)],
                                   validation_data=validation_generator,
