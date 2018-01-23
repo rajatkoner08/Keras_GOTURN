@@ -181,5 +181,9 @@ def VGG16(img_input):
     # model.layers[3].set_weights()
     print('model summary ', model.summary())
 
-    skip_concat = keras.layers.concatenate([block2_skip, block3_skip, block4_skip, block5_skip], name='skip_concat')
+    # skip_concat = keras.layers.concatenate([block2_skip, block3_skip, block4_skip, block5_skip], name='skip_concat')
+    #
+    # #stack tensor
+    # K.stack([model,skip_concat])
+
     return model

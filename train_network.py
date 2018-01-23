@@ -90,21 +90,32 @@ def main(FLAGS):
     # because we re-use the same instance of the network
     # the weights of the network will be shared across the two branches
     img_feature_t0 = feature_model(img_t0)
+
     img_feature_t1 = feature_model(img_t1)
 
+    #merge images
     concat = Concatenate(axis=-1)
     merge_images = concat([img_feature_t0,img_feature_t1])
     print ' Merged images shape ',K.get_variable_shape(merge_images)
 
+    # #merge skip features
+    # merge_skip_features = concat([skip_feature_t0 ,skip_feature_t1])
+
     # Embeded fully connected layer of 4096
     fc6 = Dense(2048, activation='relu',kernel_regularizer=l2_loss, name='fc6')(merge_images)
     fc6_dropout = Dropout(0.5)(fc6)
+
+    # # merge skip features with fc6
+    # merge_skip_fc6 = concat([fc6_dropout, merge_skip_features])
+
     fc7 = Dense(2048, activation='relu',kernel_regularizer=l2_loss)(fc6_dropout)
     fc7_dropout = Dropout(0.5)(fc7)
     fc8 = Dense(2048, activation='relu',kernel_regularizer=l2_loss)(fc7_dropout)
     fc8_dropout = Dropout(0.5)(fc8)
+    fc9 = Dense(1024, activation='relu',kernel_regularizer=l2_loss)(fc8_dropout)
+    fc9_dropout = Dropout(0.5)(fc9)
     #predict bounding box of the target
-    bbox_out = Dense(4,name='fc_bbox')(fc8_dropout)
+    bbox_out = Dense(4,name='fc_bbox')(fc9_dropout)
 
     #https://sorenbouma.github.io/blog/oneshot/   --siamese one shot
 
@@ -127,7 +138,7 @@ def main(FLAGS):
 
     #Train model on dataset
     history = model.fit_generator(generator=training_generator,
-                                  steps_per_epoch=4,
+                                  steps_per_epoch=32,
                                   epochs=Epoch,
                                   #initial_epoch=10,
                          callbacks=[ModelCheckpoint('./logs/goturn_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
